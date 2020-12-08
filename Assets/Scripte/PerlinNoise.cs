@@ -3,7 +3,12 @@
 namespace Utils {
     public static class PerlinNoise {
     
-        public static float[,] Cave(float[,] map, float modifier, bool edgesAreWalls,Vector2 offset) {
+        public static float[,] Cave(float[,] map, float modifier, bool edgesAreWalls,Vector2 offset)
+        
+        
+        
+        
+        {
             for (int x = 0; x < map.GetUpperBound(0); x++) {
                 for (int y = 0; y < map.GetUpperBound(1); y++) {
                     if (edgesAreWalls && (x == 0 || y == 0 || x == map.GetUpperBound(0) - 1 || y == map.GetUpperBound(1) - 1)) {

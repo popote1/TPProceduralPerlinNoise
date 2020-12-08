@@ -14,6 +14,7 @@ public class Map : MonoBehaviour {
     public int MapXSize, MapZSize;
     public int GapX, GapZ;
     public Vector2 Offset;
+    public bool BinaireMap;
 
     [Header("References")] 
     public Camera Camera;
@@ -30,77 +31,6 @@ public class Map : MonoBehaviour {
         BlocsGeneration();
     }
 
-    /// <summary>
-    /// Code teste
-    /// </summary>
-
-    void StartAnalyse()
-    {
-        StartCoroutine(Analyse());
-    }
-
-    IEnumerator<List<Cell>> Analyse(Cell cell )
-    {
-        List<Cell>roomCell = new List<Cell>();
-        List<Cell>cellCheck=new List<Cell>();
-        roomCell.Add(cell);
-        Debug.Log("Anilise de la room");
-        
-        while (roomCell.Count>=cellCheck.Count)
-        {
-            Debug.Log(roomCell.Count+" case font partie de la salle   "+cellCheck.Count+"   On était traiter");
-            
-            List<Cell> newRoomCells= new List<Cell>();
-            foreach (Cell analisCell in roomCell)
-            {
-                Debug.Log("la casse traiter a comme coordoner" + analisCell.Position);
-                if (!cellCheck.Contains(analisCell))
-                {
-                    if (analisCell.Position.y+1 <MapXSize)
-                    {
-                        if (Matrix[analisCell.Position.x, analisCell.Position.y + 1].Material.color == Color.white && !roomCell.Contains(Matrix[analisCell.Position.x, analisCell.Position.y + 1])&& !newRoomCells.Contains(Matrix[analisCell.Position.x, analisCell.Position.y + 1]))
-                        {
-                            newRoomCells.Add(Matrix[analisCell.Position.x, analisCell.Position.y]);
-                        }
-                    }
-                    
-                    if (analisCell.Position.y - 1 >= 0)
-                    {
-                        if (Matrix[analisCell.Position.x, analisCell.Position.y - 1].Material.color == Color.white && !roomCell.Contains(Matrix[analisCell.Position.x, analisCell.Position.y - 1])&& !newRoomCells.Contains(Matrix[analisCell.Position.x, analisCell.Position.y - 1]))
-                        {
-                            newRoomCells.Add(Matrix[analisCell.Position.x, analisCell.Position.y]);
-                        }
-                    }
-
-                    if (analisCell.Position.x + 1 < MapZSize)
-                    {
-                        if (Matrix[analisCell.Position.x + 1, analisCell.Position.y].Material.color == Color.white && !roomCell.Contains(Matrix[analisCell.Position.x + 1, analisCell.Position.y])&& !newRoomCells.Contains(Matrix[analisCell.Position.x+1, analisCell.Position.y ]))
-                        {
-                            newRoomCells.Add(Matrix[analisCell.Position.x, analisCell.Position.y]);
-                        }
-                    }
-
-                    if (analisCell.Position.x - 1 >= 0)
-                    {
-                        if (Matrix[analisCell.Position.x - 1, analisCell.Position.y - 1].Material.color == Color.white && !roomCell.Contains(Matrix[analisCell.Position.x - 1, analisCell.Position.y])&& !newRoomCells.Contains(Matrix[analisCell.Position.x-1, analisCell.Position.y ]))
-                        {
-                            newRoomCells.Add(Matrix[analisCell.Position.x, analisCell.Position.y]);
-                        }
-                    }
-
-                    cellCheck.Add(analisCell);
-                    yield return new WaitForSeconds(0.1f);
-                }
-            }
-
-            foreach (Cell newRoomCell in newRoomCells)
-            {
-                roomCell.Add(newRoomCell);
-            }
-            newRoomCells.Clear();
-x        }
-    }
-
     public void SetupCamera() {
         Camera.transform.position = new Vector3((float) MapXSize / 2, Camera.transform.position.y, (float) MapZSize / 2);
     }
@@ -113,27 +43,42 @@ x        }
             for (int j = 0; j < MapZSize; j++)
             {
                 float value = _perlinMatrix[i, j];
-                GameObject instantiate = Instantiate(BlocPrefab, new Vector3(i * GapX, 0, j * GapZ), Quaternion.identity, transform);
-                if (value <ThresHold)
+                GameObject instantiate = Instantiate(BlocPrefab, new Vector3(i * GapX, 0, j * GapZ),
+                    Quaternion.identity, transform);
+                if (BinaireMap)
                 {
-                    instantiate.GetComponent<MeshRenderer>().material.color = Color.white;
+                    instantiate.GetComponent<MeshRenderer>().material.color = Color.white * value;
                 }
                 else
                 {
-                    instantiate.GetComponent<MeshRenderer>().material.color = Color.black;
-                }
+                    if (value < ThresHold)
+                    {
+                        instantiate.GetComponent<MeshRenderer>().material.color = Color.white;
+                    }
+                    else
+                    {
+                        instantiate.GetComponent<MeshRenderer>().material.color = Color.black;
+                    }
 
-                _blocs.Add(instantiate);
-                Matrix[i,j]=new Cell(new Vector2Int(i,j),instantiate);
+                    _blocs.Add(instantiate);
+                    Matrix[i, j] = new Cell(new Vector2Int(i, j), instantiate);
+                }
             }
         }
     }
 
     public void ClearMap() {
-        foreach (GameObject bloc in _blocs) {
-            Destroy(bloc);
+        if (Matrix != null)
+        {
+            for (int x = 0; x < MapXSize; x++)
+            {
+                for (int y = 0; y < MapZSize; y++)
+                {
+                    Destroy(Matrix[x,y]?.GameObject);
+                }
+            }
         }
-        _blocs.Clear();
+
     }
 
     public void RoomDetector()
@@ -145,11 +90,12 @@ x        }
                 if (!cellTraiter.Contains(Matrix[x, y])) {
                     if (Matrix[x,y].Material.color==Color.white) {
                         Debug.Log("La case "+x+" ; "+y);
-                        RoomAnaliser(Matrix[x,y],out List<Cell> newRoom,out List<Cell>cellsCheck);
-                        _rooms.Add(newRoom);
-                        foreach (Cell cell in cellsCheck) { 
-                            cellTraiter.Add(cell);
-                        }
+                        RoomDetectorV2(Matrix[x,y]);
+                       // RoomAnaliser(Matrix[x,y],out List<Cell> newRoom,out List<Cell>cellsCheck);
+                       // _rooms.Add(newRoom);
+                        //foreach (Cell cell in cellsCheck) { 
+                         //   cellTraiter.Add(cell);
+                       // }
                     }
                 }
                 
@@ -236,6 +182,72 @@ x        }
             }
             newRoomCells.Clear();
         }
+    }
+
+    public void RoomDetectorV2(Cell startCell)
+    {
+        List<Cell> roomCells = new List<Cell>();
+        List<Cell> CellCheked = new List<Cell>();
+        
+        roomCells.Add(startCell);
+
+        do
+        {
+            List<Cell> newRoomcell=new List<Cell>();
+            foreach (Cell cell in roomCells)
+            {
+                if (!CellCheked.Contains(cell))
+                {
+                    if (cell.Position.x + 1 < MapXSize)
+                    {
+                        if (Matrix[cell.Position.x + 1, cell.Position.y].Material.color == Color.white &&
+                            !roomCells.Contains(Matrix[cell.Position.x + 1, cell.Position.y]) &&
+                            !CellCheked.Contains(Matrix[cell.Position.x + 1, cell.Position.y]))
+                        {
+                            newRoomcell.Add(Matrix[cell.Position.x + 1, cell.Position.y]);
+                        }
+                    }
+
+                    if (cell.Position.x - 1 > 0)
+                    {
+                        if (Matrix[cell.Position.x - 1, cell.Position.y].Material.color == Color.white &&
+                            !roomCells.Contains(Matrix[cell.Position.x - 1, cell.Position.y]) &&
+                            !CellCheked.Contains(Matrix[cell.Position.x - 1, cell.Position.y]))
+                        {
+                            newRoomcell.Add(Matrix[cell.Position.x - 1, cell.Position.y]);
+                        }
+                    }
+
+                    if (cell.Position.y + 1 < MapXSize)
+                    {
+                        if (Matrix[cell.Position.x, cell.Position.y + 1].Material.color == Color.white &&
+                            !roomCells.Contains(Matrix[cell.Position.x, cell.Position.y + 1]) &&
+                            !CellCheked.Contains(Matrix[cell.Position.x, cell.Position.y + 1]))
+                        {
+                            newRoomcell.Add(Matrix[cell.Position.x, cell.Position.y + 1]);
+                        }
+                    }
+
+                    if (cell.Position.y - 1 > 0)
+                    {
+                        if (Matrix[cell.Position.x, cell.Position.y - 1].Material.color == Color.white &&
+                            !roomCells.Contains(Matrix[cell.Position.x, cell.Position.y - 1]) &&
+                            !CellCheked.Contains(Matrix[cell.Position.x, cell.Position.y - 1]))
+                        {
+                            newRoomcell.Add(Matrix[cell.Position.x, cell.Position.y - 1]);
+                        }
+                    }
+
+                    CellCheked.Add(cell);
+                }
+            }
+            foreach (Cell newCell in newRoomcell)
+            {
+                newCell.Material.color = Color.blue;
+                roomCells.Add(newCell);
+            }
+            newRoomcell.Clear();
+        } while (roomCells.Count>CellCheked.Count);
     }
 }
 
